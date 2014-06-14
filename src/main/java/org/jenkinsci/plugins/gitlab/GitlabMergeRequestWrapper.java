@@ -106,25 +106,30 @@ public class GitlabMergeRequestWrapper {
     }
 
     private GitlabNote getJenkinsNote(GitlabMergeRequest gitlabMergeRequest, GitlabAPI api) throws IOException {
-        List<GitlabNote> notes = api.getAllNotes(gitlabMergeRequest);
+        List<GitlabNote> notes = getSortedNotes(gitlabMergeRequest, api);
         GitlabNote lastJenkinsNote = null;
 
-        if (!notes.isEmpty()) {
-            Collections.sort(notes, new Comparator<GitlabNote>() {
-                public int compare(GitlabNote o1, GitlabNote o2) {
-                    return o2.getCreatedAt().compareTo(o1.getCreatedAt());
-                }
-            });
-
-            for (GitlabNote note : notes) {
-                if (note.getAuthor() != null &&
-                        note.getAuthor().getUsername().equals(GitlabBuildTrigger.getDesc().getBotUsername())) {
-                    lastJenkinsNote = note;
-                    break;
-                }
+        for (GitlabNote note : notes) {
+            if (note.getAuthor() != null &&
+                    note.getAuthor().getUsername().equals(GitlabBuildTrigger.getDesc().getBotUsername())) {
+                lastJenkinsNote = note;
+                break;
             }
         }
+
         return lastJenkinsNote;
+    }
+
+    private List<GitlabNote> getSortedNotes(GitlabMergeRequest gitlabMergeRequest, GitlabAPI api) throws IOException {
+        List<GitlabNote> notes = api.getAllNotes(gitlabMergeRequest);
+
+        Collections.sort(notes, new Comparator<GitlabNote>() {
+            public int compare(GitlabNote note1, GitlabNote note2) {
+                return note2.getCreatedAt().compareTo(note1.getCreatedAt());
+            }
+        });
+
+        return notes;
     }
 
     private GitlabCommit getLatestCommit(GitlabMergeRequest gitlabMergeRequest, GitlabAPI api) throws IOException {
